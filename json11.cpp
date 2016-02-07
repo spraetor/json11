@@ -31,6 +31,7 @@ namespace json11 {
 static const int max_depth = 200;
 
 using std::string;
+using std::ostream;
 using std::vector;
 using std::map;
 using std::make_shared;
@@ -41,95 +42,101 @@ using std::move;
  * Serialization
  */
 
-static void dump(std::nullptr_t, string &out) {
-    out += "null";
+static void dump(std::nullptr_t, ostream &out) {
+    out << "null";
 }
 
-static void dump(double value, string &out) {
+static void dump(double value, ostream &out) {
     if (std::isfinite(value)) {
         char buf[32];
         snprintf(buf, sizeof buf, "%.17g", value);
-        out += buf;
+        out << buf;
     } else {
-        out += "null";
+        out << "null";
     }
 }
 
-static void dump(int value, string &out) {
+static void dump(int value, ostream &out) {
     char buf[32];
     snprintf(buf, sizeof buf, "%d", value);
-    out += buf;
+    out << buf;
 }
 
-static void dump(bool value, string &out) {
-    out += value ? "true" : "false";
+static void dump(bool value, ostream &out) {
+    out << value ? "true" : "false";
 }
 
-static void dump(const string &value, string &out) {
-    out += '"';
+static void dump(const string &value, ostream &out) {
+    out << '"';
     for (size_t i = 0; i < value.length(); i++) {
         const char ch = value[i];
         if (ch == '\\') {
-            out += "\\\\";
+            out << "\\\\";
         } else if (ch == '"') {
-            out += "\\\"";
+            out << "\\\"";
         } else if (ch == '\b') {
-            out += "\\b";
+            out << "\\b";
         } else if (ch == '\f') {
-            out += "\\f";
+            out << "\\f";
         } else if (ch == '\n') {
-            out += "\\n";
+            out << "\\n";
         } else if (ch == '\r') {
-            out += "\\r";
+            out << "\\r";
         } else if (ch == '\t') {
-            out += "\\t";
+            out << "\\t";
         } else if (static_cast<uint8_t>(ch) <= 0x1f) {
             char buf[8];
             snprintf(buf, sizeof buf, "\\u%04x", ch);
-            out += buf;
+            out << buf;
         } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
                    && static_cast<uint8_t>(value[i+2]) == 0xa8) {
-            out += "\\u2028";
+            out << "\\u2028";
             i += 2;
         } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
                    && static_cast<uint8_t>(value[i+2]) == 0xa9) {
-            out += "\\u2029";
+            out << "\\u2029";
             i += 2;
         } else {
-            out += ch;
+            out << ch;
         }
     }
-    out += '"';
+    out << '"';
 }
 
-static void dump(const Json::array &values, string &out) {
+static void dump(const Json::array &values, ostream &out) {
     bool first = true;
-    out += "[";
+    out << "[";
     for (const auto &value : values) {
         if (!first)
-            out += ", ";
+            out << ", ";
         value.dump(out);
         first = false;
     }
-    out += "]";
+    out << "]";
 }
 
-static void dump(const Json::object &values, string &out) {
+static void dump(const Json::object &values, ostream &out) {
     bool first = true;
-    out += "{";
+    out << "{";
     for (const auto &kv : values) {
         if (!first)
-            out += ", ";
+            out << ", ";
         dump(kv.first, out);
-        out += ": ";
+        out << ": ";
         kv.second.dump(out);
         first = false;
     }
-    out += "}";
+    out << "}";
+}
+
+void Json::dump(ostream &out) const {
+    m_ptr->dump(out);
 }
 
 void Json::dump(string &out) const {
-    m_ptr->dump(out);
+    std::stringstream o;
+    m_ptr->dump(o);
+    out += o.str();
 }
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -158,7 +165,7 @@ protected:
     }
 
     const T m_value;
-    void dump(string &out) const override { json11::dump(m_value, out); }
+    void dump(ostream &out) const override { json11::dump(m_value, out); }
 };
 
 class JsonDouble final : public Value<Json::NUMBER, double> {

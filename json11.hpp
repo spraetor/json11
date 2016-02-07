@@ -51,6 +51,8 @@
 #pragma once
 
 #include <string>
+#include <sstream>
+#include <ostream>
 #include <vector>
 #include <map>
 #include <memory>
@@ -141,11 +143,12 @@ public:
     const Json & operator[](const std::string &key) const;
 
     // Serialize.
+    void dump(std::ostream &out) const;
     void dump(std::string &out) const;
     std::string dump() const {
-        std::string out;
+        std::stringstream out;
         dump(out);
-        return out;
+        return out.str();
     }
 
     // Parse. If parse fails, return Json() and assign an error message to err.
@@ -196,7 +199,7 @@ protected:
     virtual Json::Type type() const = 0;
     virtual bool equals(const JsonValue * other) const = 0;
     virtual bool less(const JsonValue * other) const = 0;
-    virtual void dump(std::string &out) const = 0;
+    virtual void dump(std::ostream &out) const = 0;
     virtual double number_value() const;
     virtual int int_value() const;
     virtual bool bool_value() const;
